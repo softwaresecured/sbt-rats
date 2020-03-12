@@ -69,8 +69,13 @@ class Generator (analyser : Analyser) extends PrettyPrinter {
                 else
                     Nil)
 
-            line <>
-            "sealed abstract class ASTNode extends" <+> hsep (superTraits map text, " with")
+            val d = line <>
+                "sealed abstract class ASTNode extends" <+> hsep (superTraits map text, " with")
+
+            if (flags.definePrettyPrinter)
+                d <@> text(s"{ override def toString: String = ${grammar.module.last}PrettyPrinter.show(this) }")
+            else
+                d
         }
 
         def toRuleClasses (rule : Rule) : Doc =
