@@ -49,13 +49,11 @@ class Generator (analyser : Analyser) extends PrettyPrinter {
 
         def toSyntax : Doc =
             line <>
-            "object" <+> name <+> "{" <@>
-            nest (
-                toSuperClass <@>
-                hsep (grammar.rules map toRuleClasses) <@>
-                (if (grammar.astHeader == null) empty else string (grammar.astHeader))
-            ) <@>
-            "}"
+            "object" <+> name <+> typeBody(
+                toSuperClass,
+                hsep (grammar.rules map toRuleClasses),
+                if (grammar.astHeader == null) empty else string (grammar.astHeader),
+            )
 
         def toSuperClass : Doc = {
             val superTraits =
@@ -166,21 +164,9 @@ class Generator (analyser : Analyser) extends PrettyPrinter {
             def toConcreteClass (parent : String) (alt : Alternative) : Doc = {
                 val (ppext, pp) = toParenPPInfo (alt)
                 val req = toRequires (alt)
-                val bodylines = if (pp.isEmpty) vsep (req)
-                                else if (req.isEmpty) vsep (pp)
-                                else vsep (pp) <@> vsep (req)
-                val body = if (pp.isEmpty && req.isEmpty)
-                               empty
-                           else
-                               braces (
-                                   nest (
-                                       line <>
-                                       bodylines
-                                   ) <>
-                                   line
-                               )
+
                 "case class" <+> text (alt->constr) <+> toFields (alt) <+> "extends" <+>
-                    parent <+> hsep (ppext) <+> body
+                    parent <+> hsep (ppext) <+> typeBody(pp ++ req : _*)
             }
 
             // Common super class clause
