@@ -72,10 +72,12 @@ class Generator (analyser : Analyser) extends PrettyPrinter {
             val d = line <>
                 "sealed abstract class ASTNode extends" <+> hsep (superTraits map text, " with")
 
-            if (flags.definePrettyPrinter)
-                d <@> text(s"{ override def toString: String = ${grammar.module.last}PrettyPrinter.show(this) }")
-            else
-                d
+            d <+> typeMembers(
+                when(flags.definePrettyPrinter) {
+                    text(s"override def toString: String = ${grammar.module.last}PrettyPrinter.show(this)") },
+                when(flags.precomputeHashCodes) {
+                    text(s"override val hashCode: Int = scala.util.hashing.MurmurHash3.productHash(this)") },
+            )
         }
 
         def toRuleClasses (rule : Rule) : Doc =
@@ -666,4 +668,27 @@ class Generator (analyser : Analyser) extends PrettyPrinter {
 
     }
 
+    // [[Option.when]] is only available in Scala 2.13+
+    private def when (cond: Boolean) (x: => Doc) : Option[Doc] =
+        if (cond)
+            Some(x)
+        else
+            None
+
+    private def typeMembers (xs: Option[Doc]*) : Doc =
+        typeBody(xs.flatten : _*)
+
+    private def typeBody (parts: Doc*) : Doc =
+        parts match {
+            case Seq() =>
+                empty
+            case parts =>
+                braces (
+                    nest (
+                        line <>
+                          vsep(parts.toList)
+                    ) <>
+                      line
+                )
+        }
 }
